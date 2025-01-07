@@ -7,18 +7,47 @@ import {
   ModalFooter,
   ModalTrigger,
 } from "@/components/ui/animated-modal";
+import { Connection, PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 const TodoList = () => {
   const [task, setTask] = useState("");
   const [tasks, setTasks] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingTask, setEditingTask] = useState<string>(""); // Task being edited
+  const { publicKey, sendTransaction } = useWallet(); // Wallet adapter hook for Solana
+
+  const SOLANA_NETWORK = "https://api.devnet.solana.com"; // Update to mainnet if needed
+  const PROGRAM_ID = "iQgjk7gvaR1qiSksB4dpiaHb6moGRyeYU1vtLMYjsEL"; // Replace with your smart contract address
 
   // Add a new task
-  const addTask = () => {
-    if (!task.trim()) return;
-    setTasks([...tasks, task.trim()]);
-    setTask("");
+  const addTask = async () => {
+    if (!task.trim() || !publicKey) return;
+
+    try {
+      const connection = new Connection(SOLANA_NETWORK, "confirmed");
+
+      // Create instruction to send the task to the Solana smart contract
+      const instruction = SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: new PublicKey(PROGRAM_ID), // Replace with your program's account
+        lamports: 0, // Update based on your smart contract logic if needed
+      });
+
+      const transaction = new Transaction().add(instruction);
+
+      // Send transaction
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // Update task list locally if the transaction is successful
+      setTasks([...tasks, task.trim()]);
+      setTask("");
+
+      console.log(`Task added with transaction signature: ${signature}`);
+    } catch (error) {
+      console.error("Failed to add task:", error);
+    }
   };
 
   // Remove a task by index

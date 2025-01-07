@@ -14,6 +14,10 @@ pub mod decentralized_todo_app {
 
     pub fn add_item(ctx: Context<AddItem>, item: String) -> Result<()> {
         let todo_account = &mut ctx.accounts.todo_account;
+        
+        // Validate item length to prevent large inputs
+        require!(item.len() <= 280, CustomError::ItemTooLong);
+        
         todo_account.items.push(item);
         Ok(())
     }
@@ -37,4 +41,10 @@ pub struct Initialize<'info> {
 pub struct AddItem<'info> {
     #[account(mut)]
     pub todo_account: Account<'info, TodoAccount>,
+}
+
+#[error_code]
+pub enum CustomError {
+    #[msg("The item is too long. Maximum length is 280 characters.")]
+    ItemTooLong,
 }
